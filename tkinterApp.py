@@ -1,9 +1,16 @@
 import tkinter as tk
 from tkinter import ttk
+
 import ProjectFiles.sql_methods as sm
 import ProjectFiles.panda_methods as pm
 import ProjectFiles.DB_writer as dw
+
 import os
+
+All_Locations = ['Oregon', 'Baker', 'Benton', 'Clackamas', 'Clatsop', 'Columbia', 'Coos', 'Crook', 'Curry', 'Deschutes', 'Douglas',
+                    'Gilliam', 'Grant', 'Harney', 'Hood River', 'Jackson', 'Jefferson', 'Josaphine', 'Klamath', 'Lake', 'Lane', 'Lincoln',
+                    'Linn', 'Malheur', 'Marion', 'Morrow', 'Multnomah', 'Polk', 'Sherman', 'Tillamook', 'Umatilla', 'Union', 'Wallawa', 
+                    'Wasco', 'Washington', 'Wheeler', 'Yamhill'] #all Oregon counties and the state itself
 
 #Create the opening window 
 root = tk.Tk()
@@ -29,14 +36,22 @@ def checkIfNew():       #checks if a location has been initialized
 def displayText(text):
     print(text)
 
+def getInput():
+    selectLoc = inputWindow(root)
+    loc = selectLoc.retrieve()
+    selectLoc.destroy()
+    return loc
+
 def callFunc(func):     #handles where to go from main window button presses
-    if func in ["Lifelist", "Highcounts"]:
-        inputWindow(root, func)
+    if func in ["CompareLists"]:
+        loc1 = getInput()
+        loc2 = getInput()
+        print(loc1, loc2)
+    elif func in ["Lifelist", "Highcounts"]:
+        loc = getInput()
+        outputWindow(root, func, loc[0], loc[1], loc[2])
     elif func in ["Updatedata"]:     #some funcs don't require user inputs
         outputWindow(root, func)
-
-def outputRequest(func, county, year, hotspot = None):     #calls output window after getting necessary inputs
-    outputWindow(root, func, county, year, hotspot)
 
 
 class outputWindow(tk.Toplevel):
@@ -44,10 +59,6 @@ class outputWindow(tk.Toplevel):
         super().__init__(master)
         self.geometry('1000x900')
         self.configure(bg='#9eb5a1')
-        self.counties = ['Oregon', 'Baker', 'Benton', 'Clackamas', 'Clatsop', 'Columbia', 'Coos', 'Crook', 'Curry', 'Deschutes', 'Douglas',
-                    'Gilliam', 'Grant', 'Harney', 'Hood River', 'Jackson', 'Jefferson', 'Josaphine', 'Klamath', 'Lake', 'Lane', 'Lincoln',
-                    'Linn', 'Malheur', 'Marion', 'Morrow', 'Multnomah', 'Polk', 'Sherman', 'Tillamook', 'Umatilla', 'Union', 'Wallawa', 
-                    'Wasco', 'Washington', 'Wheeler', 'Yamhill']  #inlcuding the entire state as a location
 
         self.scrollbar = ttk.Scrollbar(self)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -73,10 +84,7 @@ class outputWindow(tk.Toplevel):
 
     def lifeList(self, master, county, year, hotspot):   #these functions can be consolidated once outputs are all in the same format
         self.title(self.generateTitle(self, 'List', county, year, hotspot))
-        if county:
-            birdList = pm.yearlist(county, year, hotspot)
-        else:
-            birdList = pm.yearlist('Oregon', year, hotspot)
+        birdList = pm.yearlist(county, year, hotspot)
         output = ""
         for i in range(0, len(birdList[0])):
             output += str(i + 1) + ' '*(6 - len(str(i + 1))) + birdList[0][i] +  ' '*(30 - len(birdList[0][i])) + birdList[1][i] + '   ' + birdList[2][i][:60] + '\n'
@@ -96,7 +104,7 @@ class outputWindow(tk.Toplevel):
     def updateData(self, master):
         self.outputBox.insert(1.0, 'Updating Data, this may take a while... \n Check the terminal window for updates.')
         self.update()
-        for i in self.counties:
+        for i in All_Locations:
                 if not os.path.isfile('ProjectFiles/DBs/' + i + 'Database.db'):
                     setupLoc(i)
                 dw.updateDB(i)
@@ -105,24 +113,20 @@ class outputWindow(tk.Toplevel):
 
 
 class inputWindow(tk.Toplevel):     #allows the user to input a location/other info with a dynamic input window
-    def __init__(self, master, func):
+    def __init__(self, master):
         super().__init__(master)
         self.geometry('300x400')
         self.title("Location Picker")
-        self.func = func
         self.configure(bg='#9eb5a1')
-        self.counties = ['Oregon', 'Baker', 'Benton', 'Clackamas', 'Clatsop', 'Columbia', 'Coos', 'Crook', 'Curry', 'Deschutes', 'Douglas',
-                    'Gilliam', 'Grant', 'Harney', 'Hood River', 'Jackson', 'Jefferson', 'Josaphine', 'Klamath', 'Lake', 'Lane', 'Lincoln',
-                    'Linn', 'Malheur', 'Marion', 'Morrow', 'Multnomah', 'Polk', 'Sherman', 'Tillamook', 'Umatilla', 'Union', 'Wallawa', 
-                    'Wasco', 'Washington', 'Wheeler', 'Yamhill']
         self.years = ['Life', '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026']
+        self.inputVal = tk.StringVar()
         
         self.countyLabel = tk.Label(self, text = "Pick a county:", font = ('Georgia', 10), bg='#9eb5a1')
         self.countyLabel.place(x = 90, y = 70)
 
         #box to choose a county
-        self.entryBox = ttk.Combobox(self, values = self.counties, width = 12)
-        self.entryBox.bind('<KeyRelease>', lambda event: self.filterOptions(self.counties, self.entryBox, event))
+        self.entryBox = ttk.Combobox(self, values = All_Locations, width = 12)
+        self.entryBox.bind('<KeyRelease>', lambda event: self.filterOptions(All_Locations, self.entryBox, event))
         self.entryBox.bind("<<ComboboxSelected>>", lambda event: self.checkEnableButton('box1', event))
         self.entryBox.place(x = 110, y = 100)
 
@@ -139,7 +143,7 @@ class inputWindow(tk.Toplevel):     #allows the user to input a location/other i
 
         #button to confirm selection / this button is only enabled when a valid set of options are selected
         self.select = tk.Button(self, height=1, width =7, relief = 'groove', font='georgia', bd=1, bg="#d6d6d6", 
-                    text='Confirm', state = 'disabled', command = self.exitWindow)
+                    text='Confirm', state = 'disabled', command = self.setInputVal)
         self.select.place(x = 210, y = 340)
         self.select.bind("<Enter>", lambda e: a.config(bg='#9e9e9d'))
         self.select.bind("<Leave>", lambda e: a.config(bg='#d6d6d6'))
@@ -182,12 +186,17 @@ class inputWindow(tk.Toplevel):     #allows the user to input a location/other i
             self.select["state"] = 'active'
 
 
-    def exitWindow(self):   #calls the next funtion and closes the window (depending on selection, there may be different outputs)
+    def setInputVal(self):   #calls the next funtion and closes the window (depending on selection, there may be different outputs)
         if self.incHotspots.get():
-            outputRequest(self.func, self.entryBox.get(), self.yearBox.get(), self.hotspotBox.get()), self.destroy()
+            self.loc = [self.entryBox.get(), self.yearBox.get(), self.hotspotBox.get()]
+            self.inputVal.set('ready')
         else:
-            outputRequest(self.func, self.entryBox.get(), self.yearBox.get()), self.destroy()
+            self.loc = [self.entryBox.get(), self.yearBox.get(), None]
+            self.inputVal.set('ready')
 
+    def retrieve(self):
+        self.wait_variable(self.inputVal)
+        return self.loc
 
 
 
@@ -221,7 +230,7 @@ d.bind("<Enter>", lambda e: d.config(bg='#9e9e9d'))
 d.bind("<Leave>", lambda e: d.config(bg='#d6d6d6'))
 
 g = tk.Button(root, height=6, width=16, relief = 'groove', font = 'georgia', bd=1, bg="#d6d6d6", 
-                    text='Compare 2 Lists', command= lambda: displayText('Diff'))
+                    text='Compare 2 Lists', command= lambda: callFunc('CompareLists'))
 g.place(x = 860, y = 180)
 g.bind("<Enter>", lambda e: g.config(bg='#9e9e9d'))
 g.bind("<Leave>", lambda e: g.config(bg='#d6d6d6'))

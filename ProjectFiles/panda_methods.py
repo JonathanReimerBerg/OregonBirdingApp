@@ -75,7 +75,7 @@ def yearlist(loc, year = None, hotspot = None, last = False):   #print a list of
     if year and year != 'Life':
         data = data[data.Date.str.contains(str(year))]  #include only species in given year
     if hotspot:
-        data = data[data.Location.str.contains(str(hotspot))]   #include only species from a given hotspot
+        data = data[data['Location'] == str(hotspot)]   #include only species from a given hotspot
 
     if year:
         data = data.sort_values('Date', kind = 'mergesort')
