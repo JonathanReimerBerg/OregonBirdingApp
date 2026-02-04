@@ -8,8 +8,8 @@ import ProjectFiles.DB_writer as dw
 import os
 
 All_Locations = ['Oregon', 'Baker', 'Benton', 'Clackamas', 'Clatsop', 'Columbia', 'Coos', 'Crook', 'Curry', 'Deschutes', 'Douglas',
-                    'Gilliam', 'Grant', 'Harney', 'Hood River', 'Jackson', 'Jefferson', 'Josaphine', 'Klamath', 'Lake', 'Lane', 'Lincoln',
-                    'Linn', 'Malheur', 'Marion', 'Morrow', 'Multnomah', 'Polk', 'Sherman', 'Tillamook', 'Umatilla', 'Union', 'Wallawa', 
+                    'Gilliam', 'Grant', 'Harney', 'Hood River', 'Jackson', 'Jefferson', 'Josephine', 'Klamath', 'Lake', 'Lane', 'Lincoln',
+                    'Linn', 'Malheur', 'Marion', 'Morrow', 'Multnomah', 'Polk', 'Sherman', 'Tillamook', 'Umatilla', 'Union', 'Wallowa', 
                     'Wasco', 'Washington', 'Wheeler', 'Yamhill'] #all Oregon counties and the state itself
 
 #Create the opening window 
@@ -46,11 +46,11 @@ def callFunc(func):     #handles where to go from main window button presses
     if func in ["CompareLists"]:
         loc1 = getInput()
         loc2 = getInput()
-        print(loc1, loc2)
+        outputWindow(root, func, [loc1[0], loc2[0]], [loc1[1], loc2[1]], [loc1[2], loc2[2]])
     elif func in ["Lifelist", "Highcounts"]:
         loc = getInput()
         outputWindow(root, func, loc[0], loc[1], loc[2])
-    elif func in ["Updatedata"]:     #some funcs don't require user inputs
+    elif func in ["Updatedata", "CompareAll"]:     #some funcs don't require user inputs
         outputWindow(root, func)
 
 
@@ -73,6 +73,10 @@ class outputWindow(tk.Toplevel):
             self.highCounts(self, county, year, hotspot)
         if func == "Updatedata":
             self.updateData(self)
+        if func == "CompareLists":
+            self.compareLists(self, county, year, hotspot)
+        if func == "CompareAll":
+            self.compareAll(self)
 
     def generateTitle(self, master, type, county, year, hotspot = None):
         if hotspot:
@@ -108,9 +112,51 @@ class outputWindow(tk.Toplevel):
                 if not os.path.isfile('ProjectFiles/DBs/' + i + 'Database.db'):
                     setupLoc(i)
                 dw.updateDB(i)
+                pm.cleanCSV(i)
         self.outputBox.delete(1.0, tk.END)
         self.outputBox.insert(1.0, 'Done')
 
+    def compareLists(self, master, county, year, hotspot):
+        self.title("List Comparison")
+        birdLists = pm.compareLists(county, year, hotspot)
+
+        hotspot = ['' if item is None else (' ' + str(item)) for item in hotspot]  #just for organizing section headers in the output for spacing/ not saying 'none' 
+
+        output = 'Birds seen in' + str(hotspot[0]) + ' ' + str(county[0]) + ', ' + str(year[0]) + ' not in' + str(hotspot[1]) + ' ' + str(county[1]) + ', ' + str(year[1]) + '\n\n'
+        for i in range(0, len(birdLists[0])):
+            output += str(i + 1) + ' '*(6 - len(str(i + 1))) + birdLists[0][i][0] +  ' '*(30 - len(birdLists[0][i][0])) + birdLists[0][i][1] + '   ' + birdLists[0][i][2][:60] + '\n'
+
+        output += '\nBirds seen in ' + str(hotspot[1]) + ' ' + str(county[1]) + ', ' + str(year[1]) + ' not in ' + str(hotspot[0]) + ' ' + str(county[0]) + ', ' + str(year[0]) + '\n\n'
+        for i in range(0, len(birdLists[1])):
+            output += str(i + 1) + ' '*(6 - len(str(i + 1))) + birdLists[1][i][0] +  ' '*(30 - len(birdLists[1][i][0])) + birdLists[1][i][1] + '   ' + birdLists[1][i][2][:60] + '\n'
+
+        self.outputBox.insert(1.0, output)
+        self.outputBox.config(state='disabled')
+
+    def compareAll(self, master):
+        lists = pm.compareAll(All_Locations[1::])
+        self.title("All counties comparison")
+
+        output = "Birds seen in all 36 Oregon Counties: \n\n"
+        for i in lists[0]:
+            output += i + '\n'
+        output += '\nBirds seen in all but 1 Oregon Counties: (missing county)\n\n'
+        for i in lists[1]:
+            output += i + '   (' + lists[1][i] + ')\n'
+        output += '\nBirds seen in all but 2 Oregon Counties: (missing counties)\n\n'
+        for i in lists[2]:
+            output += i + '   (' + lists[2][i][0] + ', ' + lists[2][i][1] + ')\n'
+        output += '\n\n\nBirds seen in only 1 Oregon County: \n\n'
+        for i in lists[3]:
+            if lists[3][i]:
+                output += i + '\n'
+                for j in lists[3][i]:
+                    output += '   ' + j + '\n'
+                output += '\n'
+
+        self.outputBox.insert(1.0, output)
+        self.outputBox.config(state='disabled')
+    
 
 class inputWindow(tk.Toplevel):     #allows the user to input a location/other info with a dynamic input window
     def __init__(self, master):
@@ -236,13 +282,13 @@ g.bind("<Enter>", lambda e: g.config(bg='#9e9e9d'))
 g.bind("<Leave>", lambda e: g.config(bg='#d6d6d6'))
 
 f = tk.Button(root, height=6, width=16, relief = 'groove', font = 'georgia', bd=1, bg="#d6d6d6", 
-                    text='Compare All Lists', command= lambda: displayText('Diff'))
+                    text='Compare All \n Counties', command= lambda: callFunc('CompareAll'))
 f.place(x = 180, y = 320)
 f.bind("<Enter>", lambda e: f.config(bg='#9e9e9d'))
 f.bind("<Leave>", lambda e: f.config(bg='#d6d6d6'))
 
 h = tk.Button(root, height=6, width=16, relief = 'groove', font = 'georgia', bd=1, bg="#d6d6d6", 
-                    text='Listing Results', command= lambda: displayText('Send to Paul Sullivan'))
+                    text='Listing Results', command= lambda: displayText('Sending...'))
 h.place(x = 350, y = 320)
 h.bind("<Enter>", lambda e: h.config(bg='#9e9e9d'))
 h.bind("<Leave>", lambda e: h.config(bg='#d6d6d6'))

@@ -5,7 +5,7 @@ import datetime
 
 
 def cleanCSV(loc):       #mostly just removing columns we don't need, and then writing to new CSV file 
-    data = pandas.read_csv('ProjectFiles/MyEBirdData.csv')
+    data = pandas.read_csv('ProjectFiles/MyEBirdData.csv', low_memory=False)
     data.drop(columns = ['Scientific Name', 'Taxonomic Order', 'Distance Traveled (km)', 'Area Covered (ha)',
                      'Breeding Code', 'Observation Details', 'Checklist Comments', 'ML Catalog Numbers',
                      'Location ID', 'Latitude', 'Longitude', 'Time', 'Protocol', 'Duration (Min)',
@@ -87,3 +87,49 @@ def yearlist(loc, year = None, hotspot = None, last = False):   #print a list of
     firsts = [data['Common_Name'].values.tolist(), data['Date'].values.tolist(), data['Location'].values.tolist()]  #get all the data we want into a list to easily print  
     return(firsts)
 
+def compareLists(county, year, hotspot):   #given two locations/times, find the differences in each list to each other
+    list1 = yearlist(county[0], year[0], hotspot[0])
+    list2 = yearlist(county[1], year[1], hotspot[1])
+    loc1notloc2 = []
+    loc2notloc1 = []
+    for i in range(0, len(list1[0])):   #iterate through list 1, looking for birds not in list 2
+        if list1[0][i] not in list2[0]:
+            loc1notloc2.append([list1[0][i], list1[1][i], list1[2][i]])    #store differences
+    for i in range(0, len(list2[0])):    #vice versa
+        if list2[0][i] not in list1[0]:
+            loc2notloc1.append([list2[0][i], list2[1][i], list2[2][i]])
+
+    return([loc1notloc2, loc2notloc1])
+
+def compareAll(locs):
+    birdList = yearlist('Oregon')[0]
+
+    allLocs = birdList[:]
+    allButOneLocs = {}
+    allButTwoLocs = {}
+    onlyInLoc = {}
+    eliminated = []
+
+    for loc in locs:
+        locList = yearlist(loc)[0]
+        diffBirds = [bird for bird in birdList if bird not in locList]
+        onlyInLoc[loc] = []
+        for bird in diffBirds:
+            if bird in allLocs:
+                allLocs.remove(bird)
+                allButOneLocs[bird] = loc
+            elif bird in allButOneLocs:
+                allButTwoLocs[bird] = [allButOneLocs[bird], loc]
+                del allButOneLocs[bird]
+            elif bird in allButTwoLocs:
+                del allButTwoLocs[bird]
+        for bird in locList:
+            if all(bird not in sublist for sublist in onlyInLoc.values()) and (bird not in eliminated):
+                onlyInLoc[loc].append(bird) 
+            elif bird not in eliminated:
+                for county in onlyInLoc.keys():
+                    if bird in onlyInLoc[county]:
+                        onlyInLoc[county].remove(bird)
+                eliminated.append(bird)
+
+    return([allLocs, allButOneLocs, allButTwoLocs, onlyInLoc])
