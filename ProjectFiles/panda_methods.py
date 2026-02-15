@@ -51,6 +51,7 @@ def scatterplot(species, loc): #create a scatterplot of all the reports of a spe
             data.drop(i, inplace = True) 
     data['Count'] = data['Count'].apply(pandas.to_numeric) 
     
+    plt.figure()
     plt.scatter(data['Date'], data['Count'])
     #plt.gcf().autofmt_xdate()      #different visual option
     
@@ -69,7 +70,7 @@ def scatterplot(species, loc): #create a scatterplot of all the reports of a spe
     plt.show()
 
 
-def yearlist(loc, year = None, hotspot = None, last = False):   #print a list of species for a given year, can sort by first seen or last
+def yearlist(loc, year = None, hotspot = None, last = False, sortByDate = True):   #print a list of species for a given year, can sort by first seen or last
     data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
     data = removeOtherTaxa(data)
     if year and year != 'Life':
@@ -77,7 +78,7 @@ def yearlist(loc, year = None, hotspot = None, last = False):   #print a list of
     if hotspot:
         data = data[data['Location'] == str(hotspot)]   #include only species from a given hotspot
 
-    if year:
+    if sortByDate:
         data = data.sort_values('Date', kind = 'mergesort')
 
     if last:            #removing duplicates keeps the first occurence, so by flipping we can get the latest seen date instead

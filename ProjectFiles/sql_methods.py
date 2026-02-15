@@ -13,18 +13,14 @@ def runCommand(command, loc, fetchone = False, fetchall = False):
     return(result)
 
 def speciesData(species, loc):  #print each occurence of a species, accompanies the scatterplot  
-    print(loc)
     dates = []
     
     command = "select Month, Day, CHECKLISTS.Year, Hotspot, Count from CHECKLISTS RIGHT JOIN [" + species + "] on CHECKLISTS.ID = ["
     command += species + "].Checklist;"
     dates = runCommand(command, loc)
 
-    print('\n')
     dates =  sorted(dates, key=lambda tup: (tup[0], tup[1])) #sort by date
-    for i in dates:
-        print(i[0], i[1], i[2], i[3], i[4])
-    print('\n')
+    return(dates)
 
 def checkHotspotBird(species, hotspot, loc): #check if a given species has been seen at a given hotspot
     command = "select Month, Day, CHECKLISTS.Year from CHECKLISTS RIGHT JOIN [" + species

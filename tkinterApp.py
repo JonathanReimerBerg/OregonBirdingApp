@@ -36,26 +36,34 @@ def checkIfNew():       #checks if a location has been initialized
 def displayText(text):
     print(text)
 
-def getInput():
-    selectLoc = inputWindow(root)
-    loc = selectLoc.retrieve()
-    selectLoc.destroy()
-    return loc
+def getInput(type, loc = None, onlyCounty = False):
+    if type == 'loc':
+        selectInput = inputLocation(root, onlyCounty)
+    else:
+        selectInput = inputSpecies(root, loc[0], loc[1], loc[2])
+    input = selectInput.retrieve()
+    selectInput.destroy()
+    return input
 
 def callFunc(func):     #handles where to go from main window button presses
     if func in ["CompareLists"]:
-        loc1 = getInput()
-        loc2 = getInput()
+        loc1 = getInput('loc')
+        loc2 = getInput('loc')
         outputWindow(root, func, [loc1[0], loc2[0]], [loc1[1], loc2[1]], [loc1[2], loc2[2]])
     elif func in ["Lifelist", "Highcounts"]:
-        loc = getInput()
+        loc = getInput('loc')
         outputWindow(root, func, loc[0], loc[1], loc[2])
     elif func in ["Updatedata", "CompareAll"]:     #some funcs don't require user inputs
         outputWindow(root, func)
+    elif func in ["SpeciesSummary"]:
+        loc = getInput('loc', None, True)
+        species = getInput('species', loc)
+        outputWindow(root, func, loc[0], loc[1], loc[2], species)
+
 
 
 class outputWindow(tk.Toplevel):
-    def __init__(self, master, func, county = None, year = None, hotspot = None):
+    def __init__(self, master, func, county = None, year = None, hotspot = None, species = None):
         super().__init__(master)
         self.geometry('1000x900')
         self.configure(bg='#9eb5a1')
@@ -77,6 +85,8 @@ class outputWindow(tk.Toplevel):
             self.compareLists(self, county, year, hotspot)
         if func == "CompareAll":
             self.compareAll(self)
+        if func == "SpeciesSummary":
+            self.speciesSummary(self, county, year, hotspot, species)
 
     def generateTitle(self, master, type, county, year, hotspot = None):
         if hotspot:
@@ -97,7 +107,7 @@ class outputWindow(tk.Toplevel):
 
     def highCounts(self, master, county, year, hotspot):
         self.title(self.generateTitle(self, 'High Counts', county, year, hotspot))
-        birdList = sm.highCounts(pm.yearlist(county)[0], year, county, hotspot)
+        birdList = sm.highCounts(pm.yearlist(county, None, None, False, False)[0], year, county, hotspot)
         output = ""
         for i in birdList:
             output += str(i[0])
@@ -156,16 +166,77 @@ class outputWindow(tk.Toplevel):
 
         self.outputBox.insert(1.0, output)
         self.outputBox.config(state='disabled')
-    
 
-class inputWindow(tk.Toplevel):     #allows the user to input a location/other info with a dynamic input window
-    def __init__(self, master):
+    def speciesSummary(self, master, county, year, hotspot, species):
+        self.title(species + " in " + self.generateTitle(self, 'List', county, year, hotspot))
+        birdlist = sm.speciesData(species, county)
+        output = ''
+        for i in birdlist:
+            output += str(i[0]) + "-" + str(i[1]) + "-" + str(i[2]) + " "*(7-(len(str(i[0])) + len(str(i[1])))) + str(i[4]) + " "*(7-len(str(i[4]))) + str(i[3]) + '\n'
+        self.outputBox.insert(1.0, output)
+        self.outputBox.config(state='disabled')
+        pm.scatterplot(species, county)
+
+
+
+class inputSpecies(tk.Toplevel):
+    def __init__(self, master, loc, year, hotspot):
+        super().__init__(master)
+        self.geometry('300x400')
+        self.title("Species Picker")
+        self.configure(bg='#9eb5a1')
+        self.species = pm.yearlist(loc, year, hotspot, False, False)[0]
+        self.inputVal = tk.StringVar()
+
+        self.speciesLabel = tk.Label(self, text = "Pick a species:", font = ('Georgia', 10), bg='#9eb5a1')
+        self.speciesLabel.place(x = 90, y = 100)
+
+        #box to choose a species
+        self.speciesBox = ttk.Combobox(self, values = self.species, width = 12)
+        self.speciesBox.bind('<KeyRelease>', lambda event: self.filterOptions(self.speciesBox, event))
+        self.speciesBox.bind("<<ComboboxSelected>>", lambda event: self.enableButton(event))
+        self.speciesBox.place(x = 110, y = 130)
+
+        #button to confirm selection / this button is only enabled when a valid set of options are selected
+        self.select = tk.Button(self, height=1, width =7, relief = 'groove', font='georgia', bd=1, bg="#d6d6d6", 
+                    text='Confirm', state = 'disabled', command = self.setInputVal)
+        self.select.place(x = 210, y = 340)
+        self.select.bind("<Enter>", lambda e: a.config(bg='#9e9e9d'))
+        self.select.bind("<Leave>", lambda e: a.config(bg='#d6d6d6'))
+
+    def filterOptions(self, box, event): #filter options in a textbox based on a users input
+        inp = box.get().lower()
+        if inp == '':
+            box["values"] = self.species
+        else:
+            filteredOptions = []
+            for specie in self.species:
+                if inp in specie.lower():
+                    filteredOptions.append(specie)
+            box["values"] = filteredOptions
+
+    def enableButton(self, event):
+        self.select["state"] = 'active'
+
+    def setInputVal(self):   #calls the next funtion and closes the window (depending on selection, there may be different outputs)
+        self.specie = self.speciesBox.get()
+        self.inputVal.set('ready')
+
+    def retrieve(self):
+        self.wait_variable(self.inputVal)
+        return self.specie
+
+
+
+class inputLocation(tk.Toplevel):     #allows the user to input a location/other info with a dynamic input window
+    def __init__(self, master, onlyCounty = False):
         super().__init__(master)
         self.geometry('300x400')
         self.title("Location Picker")
         self.configure(bg='#9eb5a1')
         self.years = ['Life', '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026']
         self.inputVal = tk.StringVar()
+        self.onlyCounty = onlyCounty
         
         self.countyLabel = tk.Label(self, text = "Pick a county:", font = ('Georgia', 10), bg='#9eb5a1')
         self.countyLabel.place(x = 90, y = 70)
@@ -177,15 +248,17 @@ class inputWindow(tk.Toplevel):     #allows the user to input a location/other i
         self.entryBox.place(x = 110, y = 100)
 
         #checkbox to allow searching by a specific hotspot
-        self.incHotspots = tk.BooleanVar()
-        self.enableHotspot = tk.Checkbutton(self, text = 'Search by hotspot?', font = 'georgia', bg = '#9eb5a1', selectcolor='#9eb5a1', 
-                                            variable = self.incHotspots, command = lambda: self.checkEnableButton('checkbox', None))
+        if not self.onlyCounty:
+            self.incHotspots = tk.BooleanVar()
+            self.enableHotspot = tk.Checkbutton(self, text = 'Search by hotspot?', font = 'georgia', bg = '#9eb5a1', selectcolor='#9eb5a1', 
+                                                variable = self.incHotspots, command = lambda: self.checkEnableButton('checkbox', None))
 
         #box to choose a year (life by default)
-        self.yearBox = ttk.Combobox(self, values = self.years, width = 12)
-        self.yearBox.set('Life')
-        self.yearBox.bind('<KeyRelease>', lambda event: self.filterOptions(self.years, self.yearBox, event))
-        self.yearBox.place(x = 110, y = 250)
+        if not self.onlyCounty:
+            self.yearBox = ttk.Combobox(self, values = self.years, width = 12)
+            self.yearBox.set('Life')
+            self.yearBox.bind('<KeyRelease>', lambda event: self.filterOptions(self.years, self.yearBox, event))
+            self.yearBox.place(x = 110, y = 250)
 
         #button to confirm selection / this button is only enabled when a valid set of options are selected
         self.select = tk.Button(self, height=1, width =7, relief = 'groove', font='georgia', bd=1, bg="#d6d6d6", 
@@ -216,6 +289,9 @@ class inputWindow(tk.Toplevel):     #allows the user to input a location/other i
 
     def checkEnableButton(self, caller, event):  #checks if we can enable the select button
         if caller == 'box1':
+            if self.onlyCounty:
+                self.select["state"] = 'active'
+                return
             if self.incHotspots.get():
                 self.hotspotBox.destroy()
                 self.enableHotspot.deselect()
@@ -233,7 +309,10 @@ class inputWindow(tk.Toplevel):     #allows the user to input a location/other i
 
 
     def setInputVal(self):   #calls the next funtion and closes the window (depending on selection, there may be different outputs)
-        if self.incHotspots.get():
+        if self.onlyCounty == True:
+            self.loc = [self.entryBox.get(), None, None]
+            self.inputVal.set('ready')
+        elif self.incHotspots.get():
             self.loc = [self.entryBox.get(), self.yearBox.get(), self.hotspotBox.get()]
             self.inputVal.set('ready')
         else:
@@ -270,7 +349,7 @@ c.bind("<Enter>", lambda e: c.config(bg='#9e9e9d'))
 c.bind("<Leave>", lambda e: c.config(bg='#d6d6d6'))
 
 d = tk.Button(root, height=6, width=16, relief = 'groove', font = 'georgia', bd=1, bg="#d6d6d6", 
-                    text='Species Summary', command= lambda: displayText('Summary'))
+                    text='Species Summary', command= lambda: callFunc('SpeciesSummary'))
 d.place(x = 690, y = 180)
 d.bind("<Enter>", lambda e: d.config(bg='#9e9e9d'))
 d.bind("<Leave>", lambda e: d.config(bg='#d6d6d6'))
