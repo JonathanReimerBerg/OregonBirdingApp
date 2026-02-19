@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import datetime
 
+exclusions = ['Black Swan']
 
 def cleanCSV(loc):       #mostly just removing columns we don't need, and then writing to new CSV file 
     data = pandas.read_csv('ProjectFiles/MyEBirdData.csv', low_memory=False)
@@ -30,6 +31,8 @@ def removeOtherTaxa(data):  #remove all non countable taxa, coultn't get all of 
     data = data[~data.Common_Name.str.contains("/")]
     data = data[~data.Common_Name.str.contains("Domestic")]
     data['Common_Name'] = data['Common_Name'].str.replace(r'\s+\([^()]*\)$', '', regex=True) #remove stuff in parenthesis
+    for i in exclusions:
+        data = data[~data.Common_Name.str.contains(i)]
     return(data)
 
 
@@ -68,6 +71,20 @@ def scatterplot(species, loc): #create a scatterplot of all the reports of a spe
     plt.title(str(species) + ' in ' + loc)
 
     plt.show()
+
+def simpleList(loc, year = None, asof = False):
+    data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
+    data = removeOtherTaxa(data)
+
+    if year:
+        if asof:
+            data['Date'] = pandas.to_datetime(data['Date'])
+            data = data[data['Date'].dt.year <= year]
+        else:
+            data = data[data.Date.str.contains(str(year))]
+
+    data = data.drop_duplicates('Common_Name', keep='first')  #after sorting, keep the first occurence of each species
+    return data['Common_Name']
 
 
 def yearlist(loc, year = None, hotspot = None, last = False, sortByDate = True):   #print a list of species for a given year, can sort by first seen or last
@@ -134,3 +151,68 @@ def compareAll(locs):
                 eliminated.append(bird)
 
     return([allLocs, allButOneLocs, allButTwoLocs, onlyInLoc])
+
+def results_2025():
+    All_Locations = ['Baker', 'Benton', 'Clackamas', 'Clatsop', 'Columbia', 'Coos', 'Crook', 'Curry', 'Deschutes', 'Douglas',
+                    'Gilliam', 'Grant', 'Harney', 'Hood River', 'Jackson', 'Jefferson', 'Josephine', 'Klamath', 'Lake', 'Lane', 'Lincoln',
+                    'Linn', 'Malheur', 'Marion', 'Morrow', 'Multnomah', 'Polk', 'Sherman', 'Tillamook', 'Umatilla', 'Union', 'Wallowa', 
+                    'Wasco', 'Washington', 'Wheeler', 'Yamhill'] 
+    Western_Half = ['Benton', 'Clackamas', 'Clatsop', 'Columbia', 'Coos', 'Curry', 'Douglas', 'Jackson', 'Josephine', 'Lane', 'Lincoln',
+                    'Linn', 'Marion', 'Multnomah', 'Polk', 'Tillamook', 'Washington', 'Yamhill'] 
+    Eastern_Half = ['Baker', 'Crook', 'Deschutes', 'Gilliam', 'Grant', 'Harney', 'Hood River', 'Jefferson', 'Klamath', 'Lake','Malheur', 
+                'Morrow', 'Sherman', 'Umatilla', 'Union', 'Wallowa', 'Wasco', 'Wheeler'] 
+
+    output = "Life List as of Dec 31, 2025 (threshold: 200) \n"
+    output += str(len(simpleList('Oregon', 2025, True)))
+
+    output += "\n\nYear List for 2025 (threshold: 200)\n"
+    output += str(len(simpleList('Oregon', 2025, False)))
+
+    output += "\n\nLife List for 18 Western Counties as of Dec 31, 2025 (threshold: 200)\n"
+    westernLifeList = []
+    for i in Western_Half:
+        j = simpleList(i, 2025, True)
+        for k in j:
+            if k not in westernLifeList:
+                westernLifeList.append(k)
+    output += str(len(westernLifeList))
+
+    output += "\n\nLife List for 18 Eastern Counties as of Dec 31, 2025 (threshold: 200)\n"
+    easternLifeList = []
+    for i in Eastern_Half:
+        j = simpleList(i, 2025, True)
+        for k in j:
+            if k not in easternLifeList:
+                easternLifeList.append(k)
+    output += str(len(easternLifeList))
+
+    output += "\n\nOREGON MOTORLESS BIRDING LIST: Your Oregon Motorless Life List (threshold: 100)\n(Must be calculated on own)"
+    output += "\n\nYour Oregon Motorless 2025 List (threshold: 100)\n(Must be calculated on own)"
+    output += "\n\nBIRDS PHOTOGRAPHED IN OREGON: Life List (threshold: 100)\n(Check eBird... functionality could be added in future)"
+    output += "\n\nBIRDS RECORDED (AUDIO) IN OREGON: Life List (threshold: 50)\n(Check eBird... functionality could be added in future)"
+
+    output += "\n\n-------------------- 2. OREGON COUNTIES LISTING -- Life Lists as of Dec 31, 2025 (threshold: 100)\n\n"
+    for i in All_Locations:
+        output += i + " Life List\n"
+        output += str(len(simpleList(i, 2025, True))) + '\n\n'
+        
+    output += "-- TOTAL COUNTY TICKS (SUM OF 36 COUNTY LIFE LISTS): Life List (threshold: 2,000)\n"
+    ticks  = 0
+    for i in All_Locations:
+        ticks += len(simpleList(i, 2025, True))
+    output += str(ticks)
+
+    output += "\n\n-- 2025 YEAR LISTS (threshold: 100)\n\n"
+    for i in All_Locations:
+        output += i + " 2025 List\n"
+        output += str(len(simpleList(i, 2025, False))) + '\n\n'
+
+    output += "-- TOTAL COUNTY YEAR TICKS (SUM OF 36 COUNTY 2025 YEAR LISTS): 500 or more\n"
+    ticks  = 0
+    for i in All_Locations:
+        ticks += len(simpleList(i, 2025, False))
+    output += str(ticks)
+
+    output += "\n\nUse eBird patch/yard totals feature to calculate desired fields in sections 3"
+
+    return output

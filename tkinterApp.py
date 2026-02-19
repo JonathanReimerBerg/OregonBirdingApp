@@ -32,10 +32,6 @@ def checkIfNew():       #checks if a location has been initialized
         setupLoc('Oregon', True)
 
 
-
-def displayText(text):
-    print(text)
-
 def getInput(type, loc = None, onlyCounty = False):
     if type == 'loc':
         selectInput = inputLocation(root, onlyCounty)
@@ -53,7 +49,7 @@ def callFunc(func):     #handles where to go from main window button presses
     elif func in ["Lifelist", "Highcounts"]:
         loc = getInput('loc')
         outputWindow(root, func, loc[0], loc[1], loc[2])
-    elif func in ["Updatedata", "CompareAll"]:     #some funcs don't require user inputs
+    elif func in ["Updatedata", "CompareAll", "ListingResults"]:     #some funcs don't require user inputs
         outputWindow(root, func)
     elif func in ["SpeciesSummary"]:
         loc = getInput('loc', None, True)
@@ -87,6 +83,8 @@ class outputWindow(tk.Toplevel):
             self.compareAll(self)
         if func == "SpeciesSummary":
             self.speciesSummary(self, county, year, hotspot, species)
+        if func == "ListingResults":
+            self.listingResults(self)
 
     def generateTitle(self, master, type, county, year, hotspot = None):
         if hotspot:
@@ -177,6 +175,11 @@ class outputWindow(tk.Toplevel):
         self.outputBox.config(state='disabled')
         pm.scatterplot(species, county)
 
+    def listingResults(self, master):
+        self.title("2025 Oregon Listing Results")
+        output = pm.results_2025()
+        self.outputBox.insert(1.0, output)
+        self.outputBox.config(state='disabled')
 
 
 class inputSpecies(tk.Toplevel):
@@ -367,7 +370,7 @@ f.bind("<Enter>", lambda e: f.config(bg='#9e9e9d'))
 f.bind("<Leave>", lambda e: f.config(bg='#d6d6d6'))
 
 h = tk.Button(root, height=6, width=16, relief = 'groove', font = 'georgia', bd=1, bg="#d6d6d6", 
-                    text='Listing Results', command= lambda: displayText('Sending...'))
+                    text='Listing Results', command= lambda: callFunc('ListingResults'))
 h.place(x = 350, y = 320)
 h.bind("<Enter>", lambda e: h.config(bg='#9e9e9d'))
 h.bind("<Leave>", lambda e: h.config(bg='#d6d6d6'))
