@@ -37,6 +37,16 @@ def removeOtherTaxa(data):  #remove all non countable taxa, coultn't get all of 
 
 
 
+def getYears(loc):
+    data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
+    dates = data['Date'].unique()
+    years = ['Life']
+    for date in dates:
+        if date[0:4] not in years:
+            years.append(date[0:4])
+    years.sort(reverse = True)
+    return years
+
 def hotspotList(loc):  #will return the name of each location birds have been reported from
     data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
     hotspots = data['Location'].unique()
@@ -84,7 +94,7 @@ def simpleList(loc, year = None, asof = False):
             data = data[data.Date.str.contains(str(year))]
 
     data = data.drop_duplicates('Common_Name', keep='first')  #after sorting, keep the first occurence of each species
-    return data['Common_Name']
+    return cleanList(data['Common_Name'])
 
 
 def yearlist(loc, year = None, hotspot = None, last = False, sortByDate = True):   #print a list of species for a given year, can sort by first seen or last
