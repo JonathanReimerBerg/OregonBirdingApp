@@ -15,7 +15,7 @@ def runCommand(command, loc, fetchone = False, fetchall = False):
 def speciesData(species, loc):  #print each occurence of a species, accompanies the scatterplot  
     dates = []
     
-    command = "select Month, Day, CHECKLISTS.Year, Hotspot, Count from CHECKLISTS RIGHT JOIN [" + species + "] on CHECKLISTS.ID = ["
+    command = "select Month, Day, CHECKLISTS.Year, Hotspot, Count, ID from CHECKLISTS RIGHT JOIN [" + species + "] on CHECKLISTS.ID = ["
     command += species + "].Checklist;"
     dates = runCommand(command, loc)
 
@@ -39,6 +39,7 @@ def hotspotList(birdlist, hotspot, loc): #get a species list for a  given hotspo
 
 def highCounts(birdlist, year, loc, hotspot = None):
     fullList = []
+    Submission_IDs = []
     if year == 'Life':
         year = 'IS NOT NULL'
     else:
@@ -54,10 +55,11 @@ def highCounts(birdlist, year, loc, hotspot = None):
         command += "where [" + birdlist[i] + "].year " + year + hotspot 
         highCount = runCommand(command, loc)
         if highCount[0][0]:
-            countDate = runCommand("SELECT Month, Day, CHECKLISTS.Year, Hotspot from CHECKLISTS where ID = '" + highCount[0][0] + "';", loc)
+            countDate = runCommand("SELECT Month, Day, CHECKLISTS.Year, Hotspot, ID from CHECKLISTS where ID = '" + highCount[0][0] + "';", loc)
             fullList.append([str(highCount[0][1]) + '  ' + ' '*(5-len(str(highCount[0][1]))) + str(birdlist[i]) + ' '*(31-len(birdlist[i])) +
                              str(countDate[0][0]) + '-' + str(countDate[0][1]) + '-' + str(countDate[0][2]) + ' '*(8-len(str(countDate[0][0]))-len(str(countDate[0][1]))) + str(countDate[0][3])])
-    return(fullList)
+            Submission_IDs.append(countDate[0][4])
+    return(fullList, Submission_IDs)
 
 
 

@@ -112,7 +112,7 @@ def yearlist(loc, year = None, hotspot = None, last = False, sortByDate = True):
         data = data.reindex(index=data.index[::-1])
     data = data.drop_duplicates('Common_Name', keep='first')  #after sorting, keep the first occurence of each species
 
-    firsts = [data['Common_Name'].values.tolist(), data['Date'].values.tolist(), data['Location'].values.tolist()]  #get all the data we want into a list to easily print  
+    firsts = [data['Common_Name'].values.tolist(), data['Date'].values.tolist(), data['Location'].values.tolist(), data['Submission_ID'].values.tolist()]  #get all the data we want into a list to easily print  
     return(firsts)
 
 def compareLists(county, year, hotspot):   #given two locations/times, find the differences in each list to each other
@@ -122,10 +122,10 @@ def compareLists(county, year, hotspot):   #given two locations/times, find the 
     loc2notloc1 = []
     for i in range(0, len(list1[0])):   #iterate through list 1, looking for birds not in list 2
         if list1[0][i] not in list2[0]:
-            loc1notloc2.append([list1[0][i], list1[1][i], list1[2][i]])    #store differences
+            loc1notloc2.append([list1[0][i], list1[1][i], list1[2][i], list1[3][i]])    #store differences
     for i in range(0, len(list2[0])):    #vice versa
         if list2[0][i] not in list1[0]:
-            loc2notloc1.append([list2[0][i], list2[1][i], list2[2][i]])
+            loc2notloc1.append([list2[0][i], list2[1][i], list2[2][i], list2[3][i]])
 
     return([loc1notloc2, loc2notloc1])
 

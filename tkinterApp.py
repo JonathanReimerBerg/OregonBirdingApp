@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+import webbrowser as wb
 
 import ProjectFiles.sql_methods as sm
 import ProjectFiles.panda_methods as pm
@@ -57,14 +58,14 @@ def callFunc(func):     #handles where to go from main window button presses
 class outputWindow(tk.Toplevel):
     def __init__(self, master, func, county = None, year = None, hotspot = None, species = None):
         super().__init__(master)
-        self.geometry('1000x900')
+        self.geometry('1100x900')
         self.configure(bg='#9eb5a1')
 
         self.scrollbar = ttk.Scrollbar(self)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.outputBox = tk.Text(self, bg='#9eb5a1', yscrollcommand= 'true')
         self.outputBox.pack(fill=tk.BOTH, expand=True)
-        self.outputBox['yscrollcommand'] = self.scrollbar.set # Text updates scrollbar
+        self.outputBox['yscrollcommand'] = self.scrollbar.set 
         self.scrollbar.config(command=self.outputBox.yview)
 
         if func == "Lifelist":
@@ -89,24 +90,34 @@ class outputWindow(tk.Toplevel):
             title = (county + ' ' + str(year) + ' ' + type)
         return title
 
+    def linkbuttons(self, master, char_pos, submission_ids, startpoint = 0):   #creates links to checklists for each entry at a given index
+        wb.register('Chrome', None, wb.BackgroundBrowser(r'C:\Program Files\Google\Chrome\Application\chrome.exe'))   #set chrome as default, may add preferences in future
+        for i in range(0, len(submission_ids)):
+            link_button = tk.Button(self.outputBox, text="\U0001F517", command = lambda id = submission_ids[i]: wb.get('chrome').open("ebird.org/checklist/" + str(id)), 
+                                    font = ("Goergia", 7), width=1, height=1, bg = '#9eb5a1', padx = 0, pady = 0, relief="flat")
+            self.outputBox.window_create(i + 1 + startpoint + char_pos, window = link_button)    #creates button at dynamically located spot (usually immediately after date)
+        return
+
 
     def lifeList(self, master, county, year, hotspot):   #these functions can be consolidated once outputs are all in the same format
         self.title(self.generateTitle(self, 'List', county, year, hotspot))
         birdList = pm.yearlist(county, year, hotspot)
         output = ""
         for i in range(0, len(birdList[0])):
-            output += str(i + 1) + ' '*(6 - len(str(i + 1))) + birdList[0][i] +  ' '*(30 - len(birdList[0][i])) + birdList[1][i] + '   ' + birdList[2][i][:60] + '\n'
+            output += str(i + 1) + ' '*(6 - len(str(i + 1))) + birdList[0][i] +  ' '*(30 - len(birdList[0][i])) + birdList[1][i] + '     ' + birdList[2][i][:60] + '\n'
         self.outputBox.insert(1.0, output)
+        self.linkbuttons(self, 0.46, birdList[3])    #places buttons at 46th character in each row
         self.outputBox.config(state='disabled')
 
     def highCounts(self, master, county, year, hotspot):
         self.title(self.generateTitle(self, 'High Counts', county, year, hotspot))
         birdList = sm.highCounts(pm.yearlist(county, None, None, False, False)[0], year, county, hotspot)
         output = ""
-        for i in birdList:
+        for i in birdList[0]:
             output += str(i[0])
             output += '\n'
         self.outputBox.insert(1.0, output)
+        self.linkbuttons(self, 0.48, birdList[1])
         self.outputBox.config(state='disabled')
 
     def updateData(self, master):
@@ -135,6 +146,8 @@ class outputWindow(tk.Toplevel):
             output += str(i + 1) + ' '*(6 - len(str(i + 1))) + birdLists[1][i][0] +  ' '*(30 - len(birdLists[1][i][0])) + birdLists[1][i][1] + '   ' + birdLists[1][i][2][:60] + '\n'
 
         self.outputBox.insert(1.0, output)
+        self.linkbuttons(self, 0.46, [tup[3] for tup in birdLists[0]], 2)
+        self.linkbuttons(self, 0.46, [tup[3] for tup in birdLists[1]], 5 + len(birdLists[0]))  #two different sets since were outputting 2 lists of birds
         self.outputBox.config(state='disabled')
 
     def compareAll(self, master):
@@ -165,9 +178,12 @@ class outputWindow(tk.Toplevel):
         self.title(species + " in " + self.generateTitle(self, 'List', county, year, hotspot))
         birdlist = sm.speciesData(species, county)
         output = ''
+        submission_ids = []
         for i in birdlist:
-            output += str(i[0]) + "-" + str(i[1]) + "-" + str(i[2]) + " "*(7-(len(str(i[0])) + len(str(i[1])))) + str(i[4]) + " "*(7-len(str(i[4]))) + str(i[3]) + '\n'
+            output += str(i[0]) + "-" + str(i[1]) + "-" + str(i[2]) + " "*(9-(len(str(i[0])) + len(str(i[1])))) + str(i[4]) + " "*(7-len(str(i[4]))) + str(i[3]) + '\n'
+            submission_ids.append(i[5])
         self.outputBox.insert(1.0, output)
+        self.linkbuttons(self, 0.11, submission_ids)
         self.outputBox.config(state='disabled')
         pm.scatterplot(species, county)
 
