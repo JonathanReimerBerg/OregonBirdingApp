@@ -36,7 +36,6 @@ def removeOtherTaxa(data):  #remove all non countable taxa, coultn't get all of 
     return(data)
 
 
-
 def getYears(loc):
     data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
     dates = data['Date'].unique()
@@ -52,6 +51,7 @@ def hotspotList(loc):  #will return the name of each location birds have been re
     hotspots = data['Location'].unique()
     hotspots.sort()
     return(cleanList(hotspots))
+
 
 def scatterplot(species, loc): #create a scatterplot of all the reports of a species by time of year and count
     data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
@@ -82,6 +82,13 @@ def scatterplot(species, loc): #create a scatterplot of all the reports of a spe
 
     plt.show()
 
+def speciesOccurence(species, loc):
+    data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
+    data = data[data['Common_Name'] == str(species)]
+    data = data.sort_values('Date', kind = 'mergesort', key = lambda x: x.str[5:9])
+    finalData = [data['Date'].values.tolist(), data['Count'].values.tolist(), data['Location'].values.tolist(), data['Submission_ID'].values.tolist()]
+    return finalData
+
 def simpleList(loc, year = None, asof = False):
     data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
     data = removeOtherTaxa(data)
@@ -97,7 +104,7 @@ def simpleList(loc, year = None, asof = False):
     return cleanList(data['Common_Name'])
 
 
-def yearlist(loc, year = None, hotspot = None, last = False, sortByDate = True):   #print a list of species for a given year, can sort by first seen or last
+def dynamicList(type, loc, year = None, hotspot = None, sort = None):   #print a list of species for a given year, can sort by first seen or last
     data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
     data = removeOtherTaxa(data)
     if year and year != 'Life':
@@ -105,19 +112,33 @@ def yearlist(loc, year = None, hotspot = None, last = False, sortByDate = True):
     if hotspot:
         data = data[data['Location'] == str(hotspot)]   #include only species from a given hotspot
 
-    if sortByDate:
-        data = data.sort_values('Date', kind = 'mergesort')
+    if type == "basic":
+        if sort in ['First Seen', 'Last Seen']:       #sort by date for both orders
+            data = data.sort_values('Date', kind = 'mergesort')
+        if sort == 'Last Seen':            #removing duplicates keeps the first occurence, so by flipping we can get the latest seen date instead
+            data = data.reindex(index=data.index[::-1])
+        if sort == 'Taxanomic':            #CSV is aleready in taxanomic order but we will display the first seen value for each entry
+            data = data.groupby('Common_Name', sort = False).apply(lambda x: x.sort_values('Date', ascending = True))
+        data = data.drop_duplicates('Common_Name', keep='first')  #after sorting, keep the first occurence of each species
+        finalData = [data['Common_Name'].values.tolist(), data['Date'].values.tolist(), data['Location'].values.tolist(), data['Submission_ID'].values.tolist()]  #get all the data we want into a list to easily print
 
-    if last:            #removing duplicates keeps the first occurence, so by flipping we can get the latest seen date instead
-        data = data.reindex(index=data.index[::-1])
-    data = data.drop_duplicates('Common_Name', keep='first')  #after sorting, keep the first occurence of each species
+    if type == 'high counts':
+        data.drop(data[data['Count'] == 'X'].index, inplace = True)
+        data['Count'] = data['Count'].astype(int)
+        if sort == 'Taxanomic':
+            data = data.groupby('Common_Name', sort = False).apply(lambda x: x.sort_values('Count', ascending = False))
+        if sort in ['High Count', 'Date']:
+            data = data.sort_values('Count', kind = 'mergesort', ascending = False)
+        data = data.drop_duplicates('Common_Name', keep='first')  #after sorting, keep the first occurence of each species
+        if sort == 'Date':
+            data = data.sort_values('Date', kind = 'mergesort')
+        finalData = [data['Count'].values.tolist(), data['Common_Name'].values.tolist(), data['Date'].values.tolist(), data['Location'].values.tolist(), data['Submission_ID'].values.tolist()] 
 
-    firsts = [data['Common_Name'].values.tolist(), data['Date'].values.tolist(), data['Location'].values.tolist(), data['Submission_ID'].values.tolist()]  #get all the data we want into a list to easily print  
-    return(firsts)
+    return(finalData)
 
-def compareLists(county, year, hotspot):   #given two locations/times, find the differences in each list to each other
-    list1 = yearlist(county[0], year[0], hotspot[0])
-    list2 = yearlist(county[1], year[1], hotspot[1])
+def compareLists(county, year, hotspot, sort):   #given two locations/times, find the differences in each list to each other
+    list1 = dynamicList('basic', county[0], year[0], hotspot[0], sort)
+    list2 = dynamicList('basic', county[1], year[1], hotspot[1], sort)
     loc1notloc2 = []
     loc2notloc1 = []
     for i in range(0, len(list1[0])):   #iterate through list 1, looking for birds not in list 2
@@ -130,7 +151,7 @@ def compareLists(county, year, hotspot):   #given two locations/times, find the 
     return([loc1notloc2, loc2notloc1])
 
 def compareAll(locs):
-    birdList = yearlist('Oregon')[0]
+    birdList = dynamicList('basic', 'Oregon')[0]
 
     allLocs = birdList[:]
     allButOneLocs = {}
@@ -139,7 +160,7 @@ def compareAll(locs):
     eliminated = []
 
     for loc in locs:
-        locList = yearlist(loc)[0]
+        locList = dynamicList('basic', loc)[0]
         diffBirds = [bird for bird in birdList if bird not in locList]
         onlyInLoc[loc] = []
         for bird in diffBirds:

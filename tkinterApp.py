@@ -60,6 +60,7 @@ class outputWindow(tk.Toplevel):
         super().__init__(master)
         self.geometry('1100x900')
         self.configure(bg='#9eb5a1')
+        self.buttons = []
 
         self.scrollbar = ttk.Scrollbar(self)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -83,7 +84,7 @@ class outputWindow(tk.Toplevel):
         if func == "ListingResults":
             self.listingResults(self)
 
-    def generateTitle(self, master, type, county, year, hotspot = None):
+    def generateTitle(self, master, type, county, year, hotspot = None):    #dynamically creates title for output page
         if hotspot:
             title = (hotspot + ', ' + county + ' ' + str(year) + ' ' + type)
         else:
@@ -95,29 +96,49 @@ class outputWindow(tk.Toplevel):
         for i in range(0, len(submission_ids)):
             link_button = tk.Button(self.outputBox, text="\U0001F517", command = lambda id = submission_ids[i]: wb.get('chrome').open("ebird.org/checklist/" + str(id)), 
                                     font = ("Goergia", 7), width=1, height=1, bg = '#9eb5a1', padx = 0, pady = 0, relief="flat")
+            self.buttons.append(link_button)
             self.outputBox.window_create(i + 1 + startpoint + char_pos, window = link_button)    #creates button at dynamically located spot (usually immediately after date)
         return
+    
+    def clearButtons(self, master):    #deletes all buttons that get replaced when the output page is reset (such as when the page is sorted)
+        for i in self.buttons:
+            i.destroy()
+        return
+    
+    def sortMenu(self, master, function, inputs, options):     #creates a button with different sort options that recreates the page when one is selected
+        sortMenu = tk.Menubutton(self, text = '\u21F5', bg='#9eb5a1', font = ("Georgia", 16))    #creates basic buttons
+        sortMenu.place(relx = 1.0, rely = 0.0, anchor = 'ne', x = -20, y = 5)
+        self.buttons.append(sortMenu)
+
+        menu = tk.Menu(sortMenu, tearoff=0)
+        sortMenu['menu'] = menu     #adds the menu to the button
+        for i in options:          #adds each otpion to the menu, calling necessary functions to delete the content and add it back. getattr allows for dynamic function calling
+            menu.add_command(label = i, command = lambda sort = i: [self.outputBox.config(state='normal'), self.clearButtons(self),
+                                                                    self.outputBox.delete("1.0", tk.END), getattr(self, function)(self, inputs[0], inputs[1], inputs[2], sort)])
+        return
+    
 
 
-    def lifeList(self, master, county, year, hotspot):   #these functions can be consolidated once outputs are all in the same format
+    def lifeList(self, master, county, year, hotspot, sort = 'First Seen'):   #these functions can be consolidated once outputs are all in the same format
         self.title(self.generateTitle(self, 'List', county, year, hotspot))
-        birdList = pm.yearlist(county, year, hotspot)
+        birdList = pm.dynamicList('basic', county, year, hotspot, sort)
         output = ""
         for i in range(0, len(birdList[0])):
-            output += str(i + 1) + ' '*(6 - len(str(i + 1))) + birdList[0][i] +  ' '*(30 - len(birdList[0][i])) + birdList[1][i] + '     ' + birdList[2][i][:60] + '\n'
+            output += str(i + 1) + ' '*(6 - len(str(i + 1))) + birdList[0][i] +  ' '*(32 - len(birdList[0][i])) + birdList[1][i] + '     ' + birdList[2][i][:60] + '\n'
         self.outputBox.insert(1.0, output)
-        self.linkbuttons(self, 0.46, birdList[3])    #places buttons at 46th character in each row
-        self.outputBox.config(state='disabled')
+        self.linkbuttons(self, 0.48, birdList[3])    #places buttons at 48th character in each row
+        self.sortMenu(self, 'lifeList', [county, year, hotspot], ['First Seen', 'Last Seen', 'Taxanomic'])
+        self.outputBox.config(state='disabled')     #otherwise user can type in box
 
-    def highCounts(self, master, county, year, hotspot):
+    def highCounts(self, master, county, year, hotspot, sort = 'Taxanomic'):
         self.title(self.generateTitle(self, 'High Counts', county, year, hotspot))
-        birdList = sm.highCounts(pm.yearlist(county, None, None, False, False)[0], year, county, hotspot)
+        birdList = pm.dynamicList('high counts', county, year, hotspot, sort)
         output = ""
-        for i in birdList[0]:
-            output += str(i[0])
-            output += '\n'
+        for i in range(0, len(birdList[0])):
+            output += str(birdList[0][i]) + '  ' + ' '*(5-len(str(birdList[0][i]))) + birdList[1][i] + ' '*(31-len(birdList[1][i])) + birdList[2][i] + '     ' + birdList[3][i][:60] + '\n'
         self.outputBox.insert(1.0, output)
-        self.linkbuttons(self, 0.48, birdList[1])
+        self.linkbuttons(self, 0.48, birdList[4])
+        self.sortMenu(self, 'highCounts', [county, year, hotspot], ['Taxanomic', 'High Count', 'Date'])
         self.outputBox.config(state='disabled')
 
     def updateData(self, master):
@@ -131,13 +152,13 @@ class outputWindow(tk.Toplevel):
         self.outputBox.delete(1.0, tk.END)
         self.outputBox.insert(1.0, 'Done')
 
-    def compareLists(self, master, county, year, hotspot):
+    def compareLists(self, master, county, year, hotspot, sort = 'First Seen'):
         self.title("List Comparison")
-        birdLists = pm.compareLists(county, year, hotspot)
+        birdLists = pm.compareLists(county, year, hotspot, sort)
 
-        hotspot = ['' if item is None else (' ' + str(item)) for item in hotspot]  #just for organizing section headers in the output for spacing/ not saying 'none' 
+        hotspot = ['' if item is None else ('' + str(item)) for item in hotspot]  #just for organizing section headers in the output for spacing/ not saying 'none' 
 
-        output = 'Birds seen in' + str(hotspot[0]) + ' ' + str(county[0]) + ', ' + str(year[0]) + ' not in' + str(hotspot[1]) + ' ' + str(county[1]) + ', ' + str(year[1]) + '\n\n'
+        output = 'Birds seen in ' + str(hotspot[0]) + ' ' + str(county[0]) + ', ' + str(year[0]) + ' not in' + str(hotspot[1]) + ' ' + str(county[1]) + ', ' + str(year[1]) + '\n\n'
         for i in range(0, len(birdLists[0])):
             output += str(i + 1) + ' '*(6 - len(str(i + 1))) + birdLists[0][i][0] +  ' '*(30 - len(birdLists[0][i][0])) + birdLists[0][i][1] + '   ' + birdLists[0][i][2][:60] + '\n'
 
@@ -148,6 +169,7 @@ class outputWindow(tk.Toplevel):
         self.outputBox.insert(1.0, output)
         self.linkbuttons(self, 0.46, [tup[3] for tup in birdLists[0]], 2)
         self.linkbuttons(self, 0.46, [tup[3] for tup in birdLists[1]], 5 + len(birdLists[0]))  #two different sets since were outputting 2 lists of birds
+        self.sortMenu(self, 'compareLists', [county, year, hotspot], ['First Seen', 'Last Seen', 'Taxanomic'])
         self.outputBox.config(state='disabled')
 
     def compareAll(self, master):
@@ -176,14 +198,12 @@ class outputWindow(tk.Toplevel):
 
     def speciesSummary(self, master, county, year, hotspot, species):
         self.title(species + " in " + self.generateTitle(self, 'List', county, year, hotspot))
-        birdlist = sm.speciesData(species, county)
+        birdList = pm.speciesOccurence(species, county)
         output = ''
-        submission_ids = []
-        for i in birdlist:
-            output += str(i[0]) + "-" + str(i[1]) + "-" + str(i[2]) + " "*(9-(len(str(i[0])) + len(str(i[1])))) + str(i[4]) + " "*(7-len(str(i[4]))) + str(i[3]) + '\n'
-            submission_ids.append(i[5])
+        for i in range(0, len(birdList[0])):
+            output += birdList[0][i] + "      " + str(birdList[1][i]) + " "*(10-len(str(birdList[1][i]))) + birdList[2][i] + '\n'
         self.outputBox.insert(1.0, output)
-        self.linkbuttons(self, 0.11, submission_ids)
+        self.linkbuttons(self, 0.11, birdList[3])
         self.outputBox.config(state='disabled')
         pm.scatterplot(species, county)
 
