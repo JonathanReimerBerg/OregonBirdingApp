@@ -9,7 +9,7 @@ def cleanCSV(loc):       #mostly just removing columns we don't need, and then w
     data = pandas.read_csv('ProjectFiles/MyEBirdData.csv', low_memory=False)
     data.drop(columns = ['Scientific Name', 'Taxonomic Order', 'Distance Traveled (km)', 'Area Covered (ha)',
                      'Breeding Code', 'Observation Details', 'Checklist Comments', 'ML Catalog Numbers',
-                     'Location ID', 'Latitude', 'Longitude', 'Time', 'Protocol', 'Duration (Min)',
+                     'Location ID','Time', 'Protocol', 'Duration (Min)',
                      'All Obs Reported', 'Number of Observers'], inplace = True)
     data.drop(data[data['State/Province'] != 'US-OR'].index, inplace = True)
     if loc != "Oregon":
@@ -53,6 +53,16 @@ def hotspotList(loc):  #will return the name of each location birds have been re
     return(cleanList(hotspots))
 
 
+def updateData(loc):
+    oldBirds = simpleList(loc)
+    cleanCSV(loc)
+    newBirds = simpleList(loc)
+    print("Location: " + loc)
+    for i in newBirds:
+        if i not in oldBirds:
+            print(i + " added")
+    return(len(newBirds))
+
 def scatterplot(species, loc): #create a scatterplot of all the reports of a species by time of year and count
     data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
     data.drop(data[data.Common_Name != species].index, inplace = True)  #remove everything but the target sp.
@@ -85,7 +95,7 @@ def scatterplot(species, loc): #create a scatterplot of all the reports of a spe
 def speciesOccurence(species, loc):
     data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
     data = data[data['Common_Name'] == str(species)]
-    data = data.sort_values('Date', kind = 'mergesort', key = lambda x: x.str[5:9])
+    data = data.sort_values('Date', kind = 'mergesort', key = lambda x: x.str[5:10])
     finalData = [data['Date'].values.tolist(), data['Count'].values.tolist(), data['Location'].values.tolist(), data['Submission_ID'].values.tolist()]
     return finalData
 

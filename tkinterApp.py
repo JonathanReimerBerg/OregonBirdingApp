@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
+from tkinter import filedialog
 import webbrowser as wb
 
 import ProjectFiles.sql_methods as sm
@@ -7,6 +9,7 @@ import ProjectFiles.panda_methods as pm
 import ProjectFiles.DB_writer as dw
 
 import os
+import shutil
 
 All_Locations = ['Oregon', 'Baker', 'Benton', 'Clackamas', 'Clatsop', 'Columbia', 'Coos', 'Crook', 'Curry', 'Deschutes', 'Douglas',
                     'Gilliam', 'Grant', 'Harney', 'Hood River', 'Jackson', 'Jefferson', 'Josephine', 'Klamath', 'Lake', 'Lane', 'Lincoln',
@@ -20,18 +23,18 @@ root.title("Oregon Birding App")
 root.configure(bg='#9eb5a1')
 
 
-def setupLoc(loc, new = False):  #adds location to the list of databases/csv's
-    if new:         #create directory if this is the first location
-        os.mkdir('ProjectFiles/DBs')
-        os.mkdir('ProjectFiles/CSVs')
-    dw.initializeDB(loc)
-    pm.cleanCSV(loc)
-    return
-
 def checkIfNew():       #checks if a location has been initialized
-    if not os.path.isfile('ProjectFiles/DBs/OregonDatabase.db'):
-        setupLoc('Oregon', True)
+    if not os.path.isfile('ProjectFiles/MainDatabase.db'):
+        dw.initializeDB()
+    if not os.path.isdir('ProjectFiles/CSVs'):
+        os.mkdir('ProjectFiles/CSVs')
+        for loc in All_Locations:
+            pm.cleanCSV(loc)
 
+def popupWindow(title, message, func):
+    result = messagebox.askyesno(title, message)
+    if result:
+        func()
 
 def getInput(hotspot, year, species):
     selectInput = inputWindow(root, hotspot, year, species)
@@ -47,11 +50,14 @@ def callFunc(func):     #handles where to go from main window button presses
     elif func in ["Lifelist", "Highcounts"]:
         loc = getInput(True, True, False)
         outputWindow(root, func, loc[0], loc[1], loc[2])
-    elif func in ["Updatedata", "CompareAll", "ListingResults"]:     #some funcs don't require user inputs
+    elif func in ["CompareAll", "ListingResults"]:     #some funcs don't require user inputs
         outputWindow(root, func)
     elif func in ["SpeciesSummary"]:
         loc = getInput(False, False, True)
         outputWindow(root, func, loc[0], loc[1], loc[2], loc[3])
+    elif func in ["HotspotsRank"]:
+        loc = getInput(False, True, False)
+        outputWindow(root, func, loc[0], loc[1], loc[2])
 
 
 
@@ -73,8 +79,6 @@ class outputWindow(tk.Toplevel):
             self.lifeList(self, county, year, hotspot)
         if func == "Highcounts":
             self.highCounts(self, county, year, hotspot)
-        if func == "Updatedata":
-            self.updateData(self)
         if func == "CompareLists":
             self.compareLists(self, county, year, hotspot)
         if func == "CompareAll":
@@ -83,6 +87,8 @@ class outputWindow(tk.Toplevel):
             self.speciesSummary(self, county, year, hotspot, species)
         if func == "ListingResults":
             self.listingResults(self)
+        if func == "HotspotsRank":
+            self.hotspotRank(self, county, year)
 
     def generateTitle(self, master, type, county, year, hotspot = None):    #dynamically creates title for output page
         if hotspot:
@@ -140,17 +146,6 @@ class outputWindow(tk.Toplevel):
         self.linkbuttons(self, 0.48, birdList[4])
         self.sortMenu(self, 'highCounts', [county, year, hotspot], ['Taxanomic', 'High Count', 'Date'])
         self.outputBox.config(state='disabled')
-
-    def updateData(self, master):
-        self.outputBox.insert(1.0, 'Updating Data, this may take a while... \n Check the terminal window for updates.')
-        self.update()
-        for i in All_Locations:
-                if not os.path.isfile('ProjectFiles/DBs/' + i + 'Database.db'):
-                    setupLoc(i)
-                dw.updateDB(i)
-                pm.cleanCSV(i)
-        self.outputBox.delete(1.0, tk.END)
-        self.outputBox.insert(1.0, 'Done')
 
     def compareLists(self, master, county, year, hotspot, sort = 'First Seen'):
         self.title("List Comparison")
@@ -210,6 +205,18 @@ class outputWindow(tk.Toplevel):
     def listingResults(self, master):
         self.title("2025 Oregon Listing Results")
         output = pm.results_2025()
+        self.outputBox.insert(1.0, output)
+        self.outputBox.config(state='disabled')
+
+    def hotspotRank(self, master, loc, year):
+        self.title(loc + " " + year + " Hotspot Rankings")
+        hotspots = sm.hotspotsRank(loc, year)
+        hotspots.sort(key = lambda x: x[2], reverse = True)
+        output = ''
+
+        for i in hotspots:
+            output += str(i[2]) + " "*(8-len(str(i[2]))) + i[0] + '\n'
+
         self.outputBox.insert(1.0, output)
         self.outputBox.config(state='disabled')
 
@@ -340,6 +347,33 @@ class inputWindow(tk.Toplevel):     #allows the user to input a location/other i
         return self.input
 
 
+def updateData():
+    popup = tk.Toplevel(root)
+    popup.title("Updating")
+    popup.geometry("260x120")
+    popup.configure(bg='#9eb5a1')
+    label = tk.Label(popup, text = "     Updating...\nPlease do not close\n\nWorking on: Baker", bg = '#9eb5a1', font = ('georgia', 14))
+    label.pack()
+    for loc in All_Locations:
+        label.config(text=f"     Updating...\nPlease do not close\n\nWorking on: " + loc)
+        popup.update()
+        total = pm.updateData(loc)
+        dw.updateDB(loc, total)
+    label.config(text=f"Completed\nYou are free to use the app")
+    return
+
+def importCSV():       #allows the user to select a file name 'MyEBirdData.csv', and gets copied into expected location in 'ProjectFiles'
+    sourcePath = filedialog.askopenfilename(title = "Select an eBird CSV file", filetypes = ((f"{"MyEBirdData.csv"} file", "MyEBirdData.csv"),))
+    if not sourcePath:
+        return
+    destinationPath = os.path.abspath(__file__)[:-13] + "ProjectFiles"
+
+    file_name = os.path.basename(sourcePath)
+    destination_path = os.path.join(destinationPath, file_name)
+    shutil.copy(sourcePath, destination_path)
+    messagebox.showinfo("Success", f"File successfully uploaded to: {destination_path}")   #confirmation message
+    checkIfNew()
+
 
 label = tk.Label(root, text = "Welcome to my Oregon Birding App! \n\n Please select an option below:", font = ('Georgia', 18), bg='#9eb5a1')
 label.pack(padx=20, pady=40)
@@ -359,7 +393,7 @@ b.bind("<Enter>", lambda e: b.config(bg='#9e9e9d'))
 b.bind("<Leave>", lambda e: b.config(bg='#d6d6d6'))
 
 c = tk.Button(root, height=6, width=16, relief = 'groove', font = 'georgia', bd=1, bg="#d6d6d6", 
-                    text='Update Data', command= lambda: callFunc('Updatedata'))
+                    text='Hotspot \n Rankings', command= lambda: callFunc('HotspotsRank'))
 c.place(x = 520, y = 180)
 c.bind("<Enter>", lambda e: c.config(bg='#9e9e9d'))
 c.bind("<Leave>", lambda e: c.config(bg='#d6d6d6'))
@@ -388,9 +422,23 @@ h.place(x = 350, y = 320)
 h.bind("<Enter>", lambda e: h.config(bg='#9e9e9d'))
 h.bind("<Leave>", lambda e: h.config(bg='#d6d6d6'))
 
+frame_separator = tk.Frame(root, height=1, bg="black", bd=0)
+frame_separator.pack(fill = 'x', pady = 130, side = "bottom")
+
+importButton = tk.Button(root, relief = 'groove', bd = 1, text="\u2913", font = ('Georgia', 15), bg='#d6d6d6', command=lambda: importCSV())
+importButton.place(x = 80, y = 690, width = 32, height = 32)
+importLabel = tk.Label(root, text = "Import eBird CSV and Update", font = ('Georgia', 11), bg='#9eb5a1')
+importLabel.place(x = 120, y = 690)
+
+updateButton = tk.Button(root, relief = 'groove', bd = 1, text="\u21bb", font = ('Georgia', 15), bg='#d6d6d6', 
+                    command=lambda: popupWindow("Update Data: Confirmation", "WARNING, this may take a while.", updateData))
+updateButton.place(x = 80, y = 740, width = 32, height = 32)
+updateLabel = tk.Label(root, text = "Update Hotspot Data", font = ('Georgia', 11), bg='#9eb5a1')
+updateLabel.place(x = 120, y = 740)
+
 quit = tk.Button(root, height=2, width=15, relief = 'groove', font = 'georgia', bd=1, bg="#c99191", 
                     text='quit', command= lambda: root.destroy())       #since all other windows are from this parent window, this button (or 'x') close all windows
-quit.place(x = 950, y = 700)
+quit.place(x = 950, y = 710)
 quit.bind("<Enter>", lambda e: quit.config(bg='red'))
 quit.bind("<Leave>", lambda e: quit.config(bg='#c99191'))
 

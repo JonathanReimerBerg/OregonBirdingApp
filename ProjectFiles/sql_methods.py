@@ -1,7 +1,12 @@
 import sqlite3
 
-def runCommand(command, loc, fetchone = False, fetchall = False):
-    connection = sqlite3.connect('ProjectFiles/DBs/' + loc + 'Database.db')
+All_Counties = ['Baker', 'Benton', 'Clackamas', 'Clatsop', 'Columbia', 'Coos', 'Crook', 'Curry', 'Deschutes', 'Douglas',
+                    'Gilliam', 'Grant', 'Harney', 'Hood River', 'Jackson', 'Jefferson', 'Josephine', 'Klamath', 'Lake', 'Lane', 'Lincoln',
+                    'Linn', 'Malheur', 'Marion', 'Morrow', 'Multnomah', 'Polk', 'Sherman', 'Tillamook', 'Umatilla', 'Union', 'Wallowa', 
+                    'Wasco', 'Washington', 'Wheeler', 'Yamhill']
+
+def runCommand(command, fetchone = False, fetchall = False):
+    connection = sqlite3.connect('ProjectFiles/MainDatabase.db')
     crsr = connection.cursor()
     try:
         crsr.execute(command)
@@ -12,20 +17,25 @@ def runCommand(command, loc, fetchone = False, fetchall = False):
     connection.close
     return(result)
 
-def checkHotspotBird(species, hotspot, loc): #check if a given species has been seen at a given hotspot
-    command = "select Month, Day, CHECKLISTS.Year from CHECKLISTS RIGHT JOIN [" + species
-    command += "] on CHECKLISTS.ID = [" + species + "].Checklist WHERE Hotspot = '"
-    command += hotspot + "' Order By CHECKLISTS.YEAR, CHECKLISTS.MONTH, CHECKLISTS.DAY  Limit 1"
-    return(runCommand(command, loc)) #returns earliest date if seen, otherwise returns nothing 
-
-def hotspotList(birdlist, hotspot, loc): #get a species list for a  given hotspot
-    fullList = []
-    for i in range(0, len(birdlist)):
-        earliestDate = checkHotspotBird(birdlist[i], hotspot, loc)
-        if earliestDate:  #if the species has been seen there, store it and the first occurence (which was returned)
-            fullList.append([birdlist[i], earliestDate])
-    fullList = sorted(fullList, key=lambda element: (element[1][0][2], element[1][0][0], element[1][0][1])) #sort by date
-    return(fullList)
+def hotspotsRank(loc, year):
+    masterList = []
+    if year == 'Life':
+        yearval = "Total_Species"
+    else:
+        yearval = "in" + str(year)
+    for county in All_Counties:
+        if county == loc or loc == 'Oregon':     #when 'Oregon' is selected, we do all counties
+            columns = []
+            for column in [i[1] for i in runCommand("PRAGMA table_info('" + county + "')")]:   #gets all column names and then writes them to new variable
+                columns.append(column)
+            if yearval in columns:        
+                hotspots = runCommand("SELECT Hotspot, Hotspot_ID, " + yearval + " From [" + county + "]")
+            else:                   # if column doesn't exist, we know each value is zero and don't need to retrive it and get an error
+                hotspots = runCommand("SELECT Hotspot, Hotspot_ID From [" + county + "]")
+                hotspots = [tup + (0,) for tup in hotspots]
+            for hotspot in hotspots:
+                masterList.append(hotspot)
+    return(masterList)
 
 
 
