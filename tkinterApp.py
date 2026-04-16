@@ -24,12 +24,15 @@ root.configure(bg='#9eb5a1')
 
 
 def checkIfNew():       #checks if a location has been initialized
-    if not os.path.isfile('ProjectFiles/AppData/MainDatabase.db'):
-        dw.initializeDB()
-    if not os.path.isdir('ProjectFiles/AppData/CSVs'):
-        os.mkdir('ProjectFiles/AppData/CSVs')
-        for loc in All_Locations:
-            pm.cleanCSV(loc)
+    if not os.path.isdir('ProjectFiles/AppData'):
+        os.mkdir('ProjectFiles/AppData')
+    else:
+        if not os.path.isfile('ProjectFiles/AppData/MainDatabase.db'):
+            dw.initializeDB()
+        if not os.path.isdir('ProjectFiles/AppData/CSVs'):
+            os.mkdir('ProjectFiles/AppData/CSVs')
+            for loc in All_Locations:
+                pm.cleanCSV(loc)
 
 def popupWindow(title, message, func):
     result = messagebox.askyesno(title, message)
