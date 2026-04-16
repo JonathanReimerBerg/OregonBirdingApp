@@ -13,7 +13,7 @@ All_Counties = ['Baker', 'Benton', 'Clackamas', 'Clatsop', 'Columbia', 'Coos', '
 exclusions = ['Black Swan']
 
 def runCommand(command, fetchone = False):
-    connection = sqlite3.connect("ProjectFiles/MainDatabase.db")
+    connection = sqlite3.connect("ProjectFiles/AppData/MainDatabase.db")
     crsr = connection.cursor()
     try:
         crsr.execute(command)
@@ -28,7 +28,7 @@ def runCommand(command, fetchone = False):
     return(result)
 
 def runCommands(commands):     #run several commands at once without having to start/close connection each time. Doesn't currently allow retrieving data
-    connection = sqlite3.connect("ProjectFiles/MainDatabase.db")
+    connection = sqlite3.connect("ProjectFiles/AppData/MainDatabase.db")
     crsr = connection.cursor()
     for command in commands:
         try:
@@ -120,7 +120,7 @@ def updateDB(loc, total):
     lastUpdated = runCommand("SELECT Updated from OREGON WHERE County = '" + loc + "';")
     print('\n' + loc,'last updated: ' + str(lastUpdated)[3:13])
 
-    data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
+    data = pandas.read_csv('ProjectFiles/AppData/CSVs/' + loc + 'CleanedData.csv')
     data = removeOtherTaxa(data)
 
     nowUpdated = (data.sort_values('Date', kind = 'mergesort', ascending = False))['Date'].iloc[0]

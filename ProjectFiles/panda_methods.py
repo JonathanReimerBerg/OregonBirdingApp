@@ -6,7 +6,7 @@ import datetime
 exclusions = ['Black Swan']
 
 def cleanCSV(loc):       #mostly just removing columns we don't need, and then writing to new CSV file 
-    data = pandas.read_csv('ProjectFiles/MyEBirdData.csv', low_memory=False)
+    data = pandas.read_csv('ProjectFiles/AppData/MyEBirdData.csv', low_memory=False)
     data.drop(columns = ['Scientific Name', 'Taxonomic Order', 'Distance Traveled (km)', 'Area Covered (ha)',
                      'Breeding Code', 'Observation Details', 'Checklist Comments', 'ML Catalog Numbers',
                      'Location ID','Time', 'Protocol', 'Duration (Min)',
@@ -16,7 +16,7 @@ def cleanCSV(loc):       #mostly just removing columns we don't need, and then w
         data.drop(data[data.County != loc].index, inplace = True)
     data.reset_index(drop = True, inplace = True)
     data.columns = [c.replace(' ', '_') for c in data.columns]
-    data.to_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv', encoding = 'utf-8', index = False)
+    data.to_csv('ProjectFiles/AppData/CSVs/' + loc + 'CleanedData.csv', encoding = 'utf-8', index = False)
     return(data)
 
 def cleanList(lyst):
@@ -37,7 +37,7 @@ def removeOtherTaxa(data):  #remove all non countable taxa, coultn't get all of 
 
 
 def getYears(loc):
-    data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
+    data = pandas.read_csv('ProjectFiles/AppData/CSVs/' + loc + 'CleanedData.csv')
     dates = data['Date'].unique()
     years = ['Life']
     for date in dates:
@@ -47,7 +47,7 @@ def getYears(loc):
     return years
 
 def hotspotList(loc):  #will return the name of each location birds have been reported from
-    data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
+    data = pandas.read_csv('ProjectFiles/AppData/CSVs/' + loc + 'CleanedData.csv')
     hotspots = data['Location'].unique()
     hotspots.sort()
     return(cleanList(hotspots))
@@ -64,7 +64,7 @@ def updateData(loc):
     return(len(newBirds))
 
 def scatterplot(species, loc): #create a scatterplot of all the reports of a species by time of year and count
-    data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
+    data = pandas.read_csv('ProjectFiles/AppData/CSVs/' + loc + 'CleanedData.csv')
     data.drop(data[data.Common_Name != species].index, inplace = True)  #remove everything but the target sp.
 
     data['Date'] = pandas.to_datetime(data['Date'])           
@@ -93,14 +93,14 @@ def scatterplot(species, loc): #create a scatterplot of all the reports of a spe
     plt.show()
 
 def speciesOccurence(species, loc):
-    data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
+    data = pandas.read_csv('ProjectFiles/AppData/CSVs/' + loc + 'CleanedData.csv')
     data = data[data['Common_Name'] == str(species)]
     data = data.sort_values('Date', kind = 'mergesort', key = lambda x: x.str[5:10])
     finalData = [data['Date'].values.tolist(), data['Count'].values.tolist(), data['Location'].values.tolist(), data['Submission_ID'].values.tolist()]
     return finalData
 
 def simpleList(loc, year = None, asof = False):
-    data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
+    data = pandas.read_csv('ProjectFiles/AppData/CSVs/' + loc + 'CleanedData.csv')
     data = removeOtherTaxa(data)
 
     if year:
@@ -115,7 +115,7 @@ def simpleList(loc, year = None, asof = False):
 
 
 def dynamicList(type, loc, year = None, hotspot = None, sort = None):   #print a list of species for a given year, can sort by first seen or last
-    data = pandas.read_csv('ProjectFiles/CSVs/' + loc + 'CleanedData.csv')
+    data = pandas.read_csv('ProjectFiles/AppData/CSVs/' + loc + 'CleanedData.csv')
     data = removeOtherTaxa(data)
     if year and year != 'Life':
         data = data[data.Date.str.contains(str(year))]  #include only species in given year

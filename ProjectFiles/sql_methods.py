@@ -6,7 +6,7 @@ All_Counties = ['Baker', 'Benton', 'Clackamas', 'Clatsop', 'Columbia', 'Coos', '
                     'Wasco', 'Washington', 'Wheeler', 'Yamhill']
 
 def runCommand(command, fetchone = False, fetchall = False):
-    connection = sqlite3.connect('ProjectFiles/MainDatabase.db')
+    connection = sqlite3.connect('ProjectFiles/AppData/MainDatabase.db')
     crsr = connection.cursor()
     try:
         crsr.execute(command)

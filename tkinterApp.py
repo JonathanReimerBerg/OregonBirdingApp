@@ -24,10 +24,10 @@ root.configure(bg='#9eb5a1')
 
 
 def checkIfNew():       #checks if a location has been initialized
-    if not os.path.isfile('ProjectFiles/MainDatabase.db'):
+    if not os.path.isfile('ProjectFiles/AppData/MainDatabase.db'):
         dw.initializeDB()
-    if not os.path.isdir('ProjectFiles/CSVs'):
-        os.mkdir('ProjectFiles/CSVs')
+    if not os.path.isdir('ProjectFiles/AppData/CSVs'):
+        os.mkdir('ProjectFiles/AppData/CSVs')
         for loc in All_Locations:
             pm.cleanCSV(loc)
 
@@ -366,7 +366,7 @@ def importCSV():       #allows the user to select a file name 'MyEBirdData.csv',
     sourcePath = filedialog.askopenfilename(title = "Select an eBird CSV file", filetypes = ((f"{"MyEBirdData.csv"} file", "MyEBirdData.csv"),))
     if not sourcePath:
         return
-    destinationPath = os.path.abspath(__file__)[:-13] + "ProjectFiles"
+    destinationPath = os.path.abspath(__file__)[:-13] + "ProjectFiles/AppData"
 
     file_name = os.path.basename(sourcePath)
     destination_path = os.path.join(destinationPath, file_name)
@@ -427,13 +427,13 @@ frame_separator.pack(fill = 'x', pady = 130, side = "bottom")
 
 importButton = tk.Button(root, relief = 'groove', bd = 1, text="\u2913", font = ('Georgia', 15), bg='#d6d6d6', command=lambda: importCSV())
 importButton.place(x = 80, y = 690, width = 32, height = 32)
-importLabel = tk.Label(root, text = "Import eBird CSV and Update", font = ('Georgia', 11), bg='#9eb5a1')
+importLabel = tk.Label(root, text = "Import eBird CSV", font = ('Georgia', 11), bg='#9eb5a1')
 importLabel.place(x = 120, y = 690)
 
 updateButton = tk.Button(root, relief = 'groove', bd = 1, text="\u21bb", font = ('Georgia', 15), bg='#d6d6d6', 
                     command=lambda: popupWindow("Update Data: Confirmation", "WARNING, this may take a while.", updateData))
 updateButton.place(x = 80, y = 740, width = 32, height = 32)
-updateLabel = tk.Label(root, text = "Update Hotspot Data", font = ('Georgia', 11), bg='#9eb5a1')
+updateLabel = tk.Label(root, text = "Update Data", font = ('Georgia', 11), bg='#9eb5a1')
 updateLabel.place(x = 120, y = 740)
 
 quit = tk.Button(root, height=2, width=15, relief = 'groove', font = 'georgia', bd=1, bg="#c99191", 
