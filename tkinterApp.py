@@ -100,13 +100,25 @@ class outputWindow(tk.Toplevel):
             title = (county + ' ' + str(year) + ' ' + type)
         return title
 
-    def linkbuttons(self, master, char_pos, submission_ids, startpoint = 0):   #creates links to checklists for each entry at a given index
+    def linkTags(self, master, startPos, endPos, links, startpoint = 0):   #creates links to checklists for each entry at a given index
         wb.register('Chrome', None, wb.BackgroundBrowser(r'C:\Program Files\Google\Chrome\Application\chrome.exe'))   #set chrome as default, may add preferences in future
-        for i in range(0, len(submission_ids)):
-            link_button = tk.Button(self.outputBox, text="\U0001F517", command = lambda id = submission_ids[i]: wb.get('chrome').open("ebird.org/checklist/" + str(id)), 
-                                    font = ("Goergia", 7), width=1, height=1, bg = '#9eb5a1', padx = 0, pady = 0, relief="flat")
-            self.buttons.append(link_button)
-            self.outputBox.window_create(i + 1 + startpoint + char_pos, window = link_button)    #creates button at dynamically located spot (usually immediately after date)
+        for i in range(0, len(links)):
+            tagName = 'link' + str(links[i])
+            self.outputBox.tag_add(tagName, str(i + 1 + startpoint + startPos), str(i + 1 + startpoint + endPos))
+            self.outputBox.tag_config(tagName, foreground = "#0454E9")
+            self.outputBox.tag_bind(tagName, "<Button-1>", lambda e, id = links[i]: wb.get('chrome').open("ebird.org/checklist/" + str(id)))
+            self.outputBox.tag_bind(tagName, "<Enter>", lambda e, n = tagName: [self.outputBox.config(cursor = "hand2"), self.outputBox.tag_config(n, foreground = "#4684F8")])
+            self.outputBox.tag_bind(tagName, "<Leave>", lambda e, n = tagName: [self.outputBox.config(cursor = ""), self.outputBox.tag_config(n, foreground = "#0454E9")])
+        return
+    
+    def locTags(self, master, startPos, locs, callInfo, startpoint = 0):   #creates links to checklists for each entry at a given index
+        for i in range(0, len(locs)):
+            tagName = 'loc' + str(locs[i])
+            self.outputBox.tag_add(tagName, str(i + 1 + startpoint) + '.' + str(startPos), str(i + 1 + startpoint) + '.' + str(startPos + len(locs[i])))
+            self.outputBox.tag_config(tagName, foreground = "#0454E9")
+            self.outputBox.tag_bind(tagName, "<Button-1>", lambda e, id = locs[i]: outputWindow(root, callInfo[0], callInfo[1], callInfo[2], id))
+            self.outputBox.tag_bind(tagName, "<Enter>", lambda e, n = tagName: [self.outputBox.config(cursor = "hand2"), self.outputBox.tag_config(n, foreground = "#4684F8")])
+            self.outputBox.tag_bind(tagName, "<Leave>", lambda e, n = tagName: [self.outputBox.config(cursor = ""), self.outputBox.tag_config(n, foreground = "#0454E9")])
         return
     
     def clearButtons(self, master):    #deletes all buttons that get replaced when the output page is reset (such as when the page is sorted)
@@ -135,7 +147,9 @@ class outputWindow(tk.Toplevel):
         for i in range(0, len(birdList[0])):
             output += str(i + 1) + ' '*(6 - len(str(i + 1))) + birdList[0][i] +  ' '*(32 - len(birdList[0][i])) + birdList[1][i] + '     ' + birdList[2][i][:60] + '\n'
         self.outputBox.insert(1.0, output)
-        self.linkbuttons(self, 0.48, birdList[3])    #places buttons at 48th character in each row
+        self.linkTags(self, 0.38, 0.48, birdList[3])    #places buttons at 48th character in each row
+        if not hotspot:
+            self.locTags(self, 53, birdList[2], ["Lifelist", county, year])
         self.sortMenu(self, 'lifeList', [county, year, hotspot], ['First Seen', 'Last Seen', 'Taxanomic'])
         self.outputBox.config(state='disabled')     #otherwise user can type in box
 
@@ -146,7 +160,9 @@ class outputWindow(tk.Toplevel):
         for i in range(0, len(birdList[0])):
             output += str(birdList[0][i]) + '  ' + ' '*(5-len(str(birdList[0][i]))) + birdList[1][i] + ' '*(31-len(birdList[1][i])) + birdList[2][i] + '     ' + birdList[3][i][:60] + '\n'
         self.outputBox.insert(1.0, output)
-        self.linkbuttons(self, 0.48, birdList[4])
+        self.linkTags(self, 0.38, 0.48, birdList[4])
+        if not hotspot:
+            self.locTags(self, 53, birdList[3], ["Highcounts", county, year])
         self.sortMenu(self, 'highCounts', [county, year, hotspot], ['Taxanomic', 'High Count', 'Date'])
         self.outputBox.config(state='disabled')
 
@@ -165,8 +181,8 @@ class outputWindow(tk.Toplevel):
             output += str(i + 1) + ' '*(6 - len(str(i + 1))) + birdLists[1][i][0] +  ' '*(30 - len(birdLists[1][i][0])) + birdLists[1][i][1] + '   ' + birdLists[1][i][2][:60] + '\n'
 
         self.outputBox.insert(1.0, output)
-        self.linkbuttons(self, 0.46, [tup[3] for tup in birdLists[0]], 2)
-        self.linkbuttons(self, 0.46, [tup[3] for tup in birdLists[1]], 5 + len(birdLists[0]))  #two different sets since were outputting 2 lists of birds
+        self.linkTags(self, 0.36, 0.46, [tup[3] for tup in birdLists[0]], 2)
+        self.linkTags(self, 0.36, 0.46, [tup[3] for tup in birdLists[1]], 5 + len(birdLists[0]))  #two different sets since were outputting 2 lists of birds
         self.sortMenu(self, 'compareLists', [county, year, hotspot], ['First Seen', 'Last Seen', 'Taxanomic'])
         self.outputBox.config(state='disabled')
 
@@ -201,7 +217,7 @@ class outputWindow(tk.Toplevel):
         for i in range(0, len(birdList[0])):
             output += birdList[0][i] + "      " + str(birdList[1][i]) + " "*(10-len(str(birdList[1][i]))) + birdList[2][i] + '\n'
         self.outputBox.insert(1.0, output)
-        self.linkbuttons(self, 0.11, birdList[3])
+        self.linkTags(self, 0.00, 0.11, birdList[3])
         self.outputBox.config(state='disabled')
         pm.scatterplot(species, county)
 
