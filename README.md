@@ -17,14 +17,20 @@ Species Summary for a given county/whole state
 
 Camparing 2 lists
 
-Caomparing species seen in all lists
+Comparing species seen in all lists
+
+Oregon Listing Results
+
+Comparing Hotspots
+
+Sorting options and links to checklists
 
 
 ### Coming soon 
 
-Oregon listing results functionality
+Location target species
 
-Possibly quick sorting options
+Patches
 
 ## Built With
 
@@ -37,7 +43,7 @@ Possibly quick sorting options
 
 Main Menu:
 
-![Alt text](/Screenshots/OBA-Menu_Screenshot.png)
+![Alt text](/Screenshots/OBA-Menu.png)
 
 Location/year Selection:
 
@@ -47,4 +53,10 @@ Result Window:
 
 ![Alt text](/Screenshots/OBA-Result.png)
 
+List Comparison:
 
+![Alt text](/Screenshots/OBA-Comparison.png)
+
+Scatterplot:
+
+![Alt text](/Screenshots/OBA-Scatterplot.png)
